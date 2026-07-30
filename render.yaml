@@ -1,0 +1,73 @@
+# Render に置くときの設定。
+#
+#   1. このリポジトリを GitHub に上げる
+#   2. Render → New → Blueprint → このリポジトリを選ぶ
+#   3. 環境変数（sync: false のもの）を画面で入れる
+#
+# 無料プランは使わないこと:
+#   無料プランは一定時間で停止し、永続ディスクも付けられない。
+#   停止すると台帳が消え、毎朝の同期も走らない。
+services:
+  - type: web
+    name: meishiaize
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # 有料プラン。永続ディスクを付けるために必要。
+    plan: starter
+    region: singapore
+    healthCheckPath: /api/config
+    disk:
+      name: data
+      # Dockerfile の DATA_ROOT と揃えること。ここがずれると
+      # 起動はするのに再デプロイでデータが消える（気づきにくい）。
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      # 外から見えるURL。Google の戻り先にも使う。
+      # 独自ドメインを設定したらそれに変える（例: https://meishiaize.app）。
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # 1人1日に読み取れる枚数。APIの費用を有限にするための上限。
+      - key: SCAN_LIMIT_PER_DAY
+        value: "10"
+      - key: DATA_ROOT
+        value: /data
+      - key: OUTLOOK_DESKTOP
+        value: "false"
+      - key: CALENDAR_PROVIDER
+        value: google
+
+  # 毎日の同期（カレンダー側の変更を台帳に取り込む）。
+  # PCのタスクスケジューラの代わり。
+  - type: cron
+    name: meishiaize-sync
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: singapore
+    # 日本時間の朝9時（Render は UTC で解釈する）。
+    schedule: "0 0 * * *"
+    dockerCommand: node main.js sync-all
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: DATA_ROOT
+        value: /data
+      - key: OUTLOOK_DESKTOP
+        value: "false"
+      - key: CALENDAR_PROVIDER
+        value: google
