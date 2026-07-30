@@ -16,7 +16,7 @@ services:
     plan: starter
     region: singapore
     healthCheckPath: /api/config
-    disk:
+
       name: data
       # Dockerfile の DATA_ROOT と揃えること。ここがずれると
       # 起動はするのに再デプロイでデータが消える（気づきにくい）。
@@ -54,7 +54,7 @@ services:
     # 日本時間の朝9時（Render は UTC で解釈する）。
     schedule: "0 0 * * *"
     dockerCommand: node main.js sync-all
-    disk:
+  
       name: data
       mountPath: /data
       sizeGB: 1
